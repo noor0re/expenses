@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مدیریت هزینه‌های خانواده</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text: #1C1C1E;
+            --border: #C6C6C8;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            direction: rtl;
+        }
+        h1 {
+            font-size: 22px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #FAFAFC;
+            box-sizing: border-box;
+            margin-bottom: 14px;
+        }
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .summary-box {
+            display: flex;
+            justify-content: space-between;
+            background: #E5F1FF;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #E5E5EA;
+            font-size: 14px;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        .del-btn {
+            background: #FF3B30;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            width: auto;
+        }
+        .export-btn {
+            background: #34C759;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>💰 هزینه‌های خانواده</h1>
+
+    <div class="summary-box">
+        <span>مجموع کل هزینه‌ها:</span>
+        <span id="totalAmount">۰ تومان / یورو</span>
+    </div>
+
+    <div class="card">
+        <label>مبلغ</label>
+        <input type="number" id="amount" placeholder="مثلاً 25">
+
+        <label>دسته‌بندی</label>
+        <select id="category">
+            <option value="خرید خوراک">خرید خوراک</option>
+            <option value="خرید پوشاک">خرید پوشاک</option>
+            <option value="وسایل خانه">وسایل خانه</option>
+            <option value="حمل‌ونقل و بلیط">حمل‌ونقل و بلیط</option>
+            <option value="رستوران و بیرون‌بر">رستوران و بیرون‌بر</option>
+            <option value="لوازم برقی">لوازم برقی</option>
+            <option value="هزینه‌های ثابت">هزینه‌های ثابت</option>
+            <option value="دارو و دکتر">دارو و دکتر</option>
+            <option value="متفرقه">متفرقه</option>
+        </select>
+
+        <label>توضیحات (اختیاری)</label>
+        <input type="text" id="desc" placeholder="مثلاً خرید هفتگی">
+
+        <button onclick="addExpense()">ثبت هزینه</button>
+    </div>
+
+    <div class="card">
+        <h3>لیست آخرین هزینه‌ها</h3>
+        <ul id="expenseList"></ul>
+        <button class="export-btn" onclick="exportCSV()">خروجی CSV</button>
+    </div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('family_expenses')) || [];
+
+    function saveAndRender() {
+        localStorage.setItem('family_expenses', JSON.stringify(expenses));
+        render();
+    }
+
+    function addExpense() {
+        const amount = document.getElementById('amount').value;
+        const category = document.getElementById('category').value;
+        const desc = document.getElementById('desc').value;
+
+        if (!amount) {
+            alert('لطفاً مبلغ را وارد کنید.');
+            return;
+        }
+
+        const newExpense = {
+            id: Date.now(),
+            date: new Date().toLocaleDateString('fa-IR'),
+            amount: parseFloat(amount),
+            category: category,
+            desc: desc || '-'
+        };
+
+        expenses.unshift(newExpense);
+        document.getElementById('amount').value = '';
+        document.getElementById('desc').value = '';
+        saveAndRender();
+    }
+
+    function deleteExpense(id) {
+        expenses = expenses.filter(item => item.id !== id);
+        saveAndRender();
+    }
+
+    function render() {
+        const listEl = document.getElementById('expenseList');
+        const totalEl = document.getElementById('totalAmount');
+        listEl.innerHTML = '';
+        
+        let total = 0;
+        if (expenses.length === 0) {
+            listEl.innerHTML = '<li style="text-align: center; color: #8e8e93;">هنوز هزینه‌ای ثبت نشده است.</li>';
+        }
+
+        expenses.forEach(item => {
+            total += item.amount;
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div>
+                    <strong>${item.category}</strong> (${item.amount})<br>
+                    <small style="color: #666;">${item.desc} - ${item.date}</small>
+                </div>
+                <button class="del-btn" onclick="deleteExpense(${item.id})">حذف</button>
+            `;
+            listEl.appendChild(li);
+        });
+
+        totalEl.innerText = total.toLocaleString() + ' واحد';
+    }
+
+    function exportCSV() {
+        let csv = 'ID,Date,Category,Amount,Description\n';
+        expenses.forEach(e => {
+            csv += `${e.id},${e.date},${e.category},${e.amount},"${e.desc}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'expenses_backup.csv';
+        a.click();
+    }
+
+    render();
+</script>
+
+</body>
+</html>
